@@ -8,12 +8,28 @@ window.tanks = function tanks(element) {
     const KEY_DOWN = 40;
     const KEY_SPACE = 32;
 
+    const DIRECTION_UP = 0;
+    const DIRECTION_RIGHT = 1.57;
+    const DIRECTION_DOWN = Math.PI;
+    const DIRECTION_LEFT = 4.71;
+
     const canvas = document.createElement('canvas');
     canvas.height = HEIGHT;
     canvas.width = WIDTH;
 
-    const context = canvas.getContext('2d');
     element.appendChild(canvas);
+
+    const tankImages = [
+        document.createElement('img'),
+        document.createElement('img'),
+        document.createElement('img')
+    ];
+
+    tankImages[0].src = 'img/green-tank-1.svg';
+    tankImages[1].src = 'img/green-tank-2.svg';
+    tankImages[2].src = 'img/green-tank-3.svg';
+
+    const context = canvas.getContext('2d');
 
     const animate = window.requestAnimationFrame || window.webkitRequestAnimationFrame ||
         function(callback) {
@@ -60,25 +76,57 @@ window.tanks = function tanks(element) {
     };
 
     function Tank(x, y) {
-        Actor.call(this, x, y, 100, 100);
+        Actor.call(this, x, y, 50, 50);
+        this.direction = DIRECTION_UP;
+        this.evenTick = 0;
     }
 
     Tank.prototype = Object.create(Actor.prototype);
 
     Tank.prototype.update = function() {
         if (keys.hasOwnProperty(KEY_UP)) {
+            this.direction = DIRECTION_UP;
+            this.evenTick++;
+            this.evenTick %= 3;
             this.move(0, -1);
         } else if (keys.hasOwnProperty(KEY_RIGHT)) {
+            this.direction = DIRECTION_RIGHT;
+            this.evenTick++;
+            this.evenTick %= 3;
             this.move(1, 0);
         } else if (keys.hasOwnProperty(KEY_DOWN)) {
+            this.direction = DIRECTION_DOWN;
+            this.evenTick++;
+            this.evenTick %= 3;
             this.move(0, 1);
         } else if (keys.hasOwnProperty(KEY_LEFT)) {
+            this.direction = DIRECTION_LEFT;
+            this.evenTick++;
+            this.evenTick %= 3;
             this.move(-1, 0);
         } else {
             this.move(0, 0);
         }
 
         Actor.prototype.update.call(this);
+    };
+
+    Tank.prototype.render = function() {
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(this.direction);
+
+        if (this.direction === DIRECTION_DOWN) {
+            context.drawImage(tankImages[this.evenTick], -this.w, -this.h, this.w, this.h);
+        } else if (this.direction === DIRECTION_LEFT) {
+            context.drawImage(tankImages[this.evenTick], -this.w, 0, this.w, this.h);
+        } else if (this.direction === DIRECTION_RIGHT) {
+            context.drawImage(tankImages[this.evenTick], 0, -this.h, this.w, this.h);
+        } else {
+            context.drawImage(tankImages[this.evenTick], 0, 0, this.w, this.h);
+        }
+
+        context.restore();
     };
 
     const actors = [
