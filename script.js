@@ -8,10 +8,20 @@ window.tanks = function tanks(element) {
     const KEY_DOWN = 40;
     const KEY_SPACE = 32;
 
+    const KEY_W = 87;
+    const KEY_A = 65;
+    const KEY_S = 83;
+    const KEY_D = 68;
+    const KEY_F = 70;
+
     const DIRECTION_UP = 0;
     const DIRECTION_RIGHT = 1.57;
     const DIRECTION_DOWN = Math.PI;
     const DIRECTION_LEFT = 4.71;
+
+    const TANK_SIZE = 50;
+    const TANK_COLOR_GREEN = 'green';
+    const TANK_COLOR_YELLOW = 'yellow';
 
     const canvas = document.createElement('canvas');
     canvas.height = HEIGHT;
@@ -19,15 +29,16 @@ window.tanks = function tanks(element) {
 
     element.appendChild(canvas);
 
-    const tankImages = [
-        document.createElement('img'),
-        document.createElement('img'),
-        document.createElement('img')
-    ];
+    const TANK_IMAGES = {};
 
-    tankImages[0].src = 'img/green-tank-1.svg';
-    tankImages[1].src = 'img/green-tank-2.svg';
-    tankImages[2].src = 'img/green-tank-3.svg';
+    [TANK_COLOR_GREEN, TANK_COLOR_YELLOW].forEach(function(color) {
+        TANK_IMAGES[color] = [];
+        for (var i = 1; i <= 3; i++) {
+            var element = document.createElement('img');
+            element.src = 'img/' + color + '-tank-' + i + '.svg';
+            TANK_IMAGES[color].push(element);
+        }
+    });
 
     const context = canvas.getContext('2d');
 
@@ -81,25 +92,30 @@ window.tanks = function tanks(element) {
         this.y_speed = y;
     };
 
-    function Tank(x, y) {
-        Actor.call(this, x, y, 50, 50);
-        this.direction = DIRECTION_UP;
+    function Tank(x, y, direction, color, upKey, rightKey, downKey, leftKey) {
+        Actor.call(this, x, y, TANK_SIZE, TANK_SIZE);
+        this.direction = direction;
         this.evenTick = 0;
+        this.upKey = upKey;
+        this.rightKey = rightKey;
+        this.downKey = downKey;
+        this.leftKey = leftKey;
+        this.color = color;
     }
 
     Tank.prototype = Object.create(Actor.prototype);
 
     Tank.prototype.update = function() {
-        if (keys.hasOwnProperty(KEY_UP)) {
+        if (keys.hasOwnProperty(this.upKey)) {
             this.direction = DIRECTION_UP;
             this.move(0, -1);
-        } else if (keys.hasOwnProperty(KEY_RIGHT)) {
+        } else if (keys.hasOwnProperty(this.rightKey)) {
             this.direction = DIRECTION_RIGHT;
             this.move(1, 0);
-        } else if (keys.hasOwnProperty(KEY_DOWN)) {
+        } else if (keys.hasOwnProperty(this.downKey)) {
             this.direction = DIRECTION_DOWN;
             this.move(0, 1);
-        } else if (keys.hasOwnProperty(KEY_LEFT)) {
+        } else if (keys.hasOwnProperty(this.leftKey)) {
             this.direction = DIRECTION_LEFT;
             this.move(-1, 0);
         } else {
@@ -115,13 +131,13 @@ window.tanks = function tanks(element) {
         context.rotate(this.direction);
 
         if (this.direction === DIRECTION_DOWN) {
-            context.drawImage(tankImages[this.evenTick], -this.w, -this.h, this.w, this.h);
+            context.drawImage(TANK_IMAGES[this.color][this.evenTick], -this.w, -this.h, this.w, this.h);
         } else if (this.direction === DIRECTION_LEFT) {
-            context.drawImage(tankImages[this.evenTick], -this.w, 0, this.w, this.h);
+            context.drawImage(TANK_IMAGES[this.color][this.evenTick], -this.w, 0, this.w, this.h);
         } else if (this.direction === DIRECTION_RIGHT) {
-            context.drawImage(tankImages[this.evenTick], 0, -this.h, this.w, this.h);
+            context.drawImage(TANK_IMAGES[this.color][this.evenTick], 0, -this.h, this.w, this.h);
         } else {
-            context.drawImage(tankImages[this.evenTick], 0, 0, this.w, this.h);
+            context.drawImage(TANK_IMAGES[this.color][this.evenTick], 0, 0, this.w, this.h);
         }
 
         context.restore();
@@ -136,27 +152,28 @@ window.tanks = function tanks(element) {
         Actor.prototype.move.call(this, x, y);
     };
 
-    function Projectile(tank) {
+    function Projectile(tank, key) {
         Actor.call(this, 0, 0, 10, 10);
         this.tank = tank;
         this.fired = false;
+        this.key = key;
     }
 
     Projectile.prototype = Object.create(Actor.prototype);
 
     Projectile.prototype.update = function() {
-        if (keys.hasOwnProperty(KEY_SPACE) && !this.fired) {
+        if (keys.hasOwnProperty(this.key) && !this.fired) {
             this.fired = true;
             this.x = this.tank.x + ((this.tank.w / 2) - (this.w / 2));
             this.y = this.tank.y + ((this.tank.h / 2) - (this.h / 2));
 
-            if (tank.direction === DIRECTION_UP) {
+            if (this.tank.direction === DIRECTION_UP) {
                 this.move(0, -4);
-            } else if (tank.direction === DIRECTION_DOWN) {
+            } else if (this.tank.direction === DIRECTION_DOWN) {
                 this.move(0, 4);
-            } else if (tank.direction === DIRECTION_RIGHT) {
+            } else if (this.tank.direction === DIRECTION_RIGHT) {
                 this.move(4, 0);
-            } else if (tank.direction === DIRECTION_LEFT) {
+            } else if (this.tank.direction === DIRECTION_LEFT) {
                 this.move(-4, 0);
             }
         }
@@ -176,10 +193,13 @@ window.tanks = function tanks(element) {
         Actor.prototype.render.call(this);
     };
 
-    var tank = new Tank(0, 0);
+    var tank = new Tank(WIDTH / 2 - TANK_SIZE / 2, 0, DIRECTION_DOWN, TANK_COLOR_GREEN, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT);
+    var tank2 = new Tank(WIDTH / 2 - TANK_SIZE / 2, HEIGHT - TANK_SIZE, DIRECTION_UP, TANK_COLOR_YELLOW, KEY_W, KEY_D, KEY_S, KEY_A);
     const actors = [
         tank,
-        new Projectile(tank)
+        new Projectile(tank, KEY_SPACE),
+        tank2,
+        new Projectile(tank2, KEY_F)
     ];
 
     function update() {
