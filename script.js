@@ -58,11 +58,11 @@ window.tanks = function tanks(element) {
     });
 
     function between(n, x1, x2) {
-        return n > x1 && n < x2;
+        return n >= x1 && n < x2;
     }
 
     function colided(x1, xo1, x2, xo2) {
-        return between(x1, x2, xo2) || between(xo1, x2, xo2) || x1 == x2 && xo1 == xo2;
+        return between(x1, x2, xo2) || between(xo1, x2, xo2);
     }
 
     function Actor(x, y, w, h, x_speed, y_speed) {
@@ -184,10 +184,19 @@ window.tanks = function tanks(element) {
         }
 
         Actor.prototype.move.call(this, x, y);
+
+        if (this.colided(this.enemeny)) {
+            this.x_speed = 0;
+            this.y_speed = 0;
+        }
+    };
+
+    Tank.prototype.setEnemy = function(tank) {
+        this.enemeny = tank;
     };
 
     function Projectile(tank, enemy, key) {
-        Actor.call(this, 0, 0, 10, 10);
+        Actor.call(this, 0, 0, 5, 5);
         this.tank = tank;
         this.enemy = enemy;
         this.fired = false;
@@ -232,8 +241,10 @@ window.tanks = function tanks(element) {
         Actor.prototype.render.call(this);
     };
 
-    var tank = new Tank(WIDTH / 2 - TANK_SIZE / 2, 0, DIRECTION_DOWN, TANK_COLOR_GREEN, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT);
+    var tank = new Tank(WIDTH / 2 - TANK_SIZE / 2, 499, DIRECTION_DOWN, TANK_COLOR_GREEN, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT);
     var tank2 = new Tank(WIDTH / 2 - TANK_SIZE / 2, HEIGHT - TANK_SIZE, DIRECTION_UP, TANK_COLOR_YELLOW, KEY_W, KEY_D, KEY_S, KEY_A);
+    tank.setEnemy(tank2);
+    tank2.setEnemy(tank);
     const actors = [
         tank,
         new Projectile(tank, tank2, KEY_SPACE),
