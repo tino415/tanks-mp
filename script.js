@@ -23,6 +23,8 @@ window.tanks = function tanks(element) {
     const TANK_COLOR_GREEN = 'green';
     const TANK_COLOR_YELLOW = 'yellow';
 
+    const RESET_TICK = 30;
+
     const canvas = document.createElement('canvas');
     canvas.height = HEIGHT;
     canvas.width = WIDTH;
@@ -128,6 +130,13 @@ window.tanks = function tanks(element) {
 
     function Tank(x, y, direction, color, upKey, rightKey, downKey, leftKey) {
         Actor.call(this, x, y, TANK_SIZE, TANK_SIZE);
+
+        this.initial = {
+            x: x,
+            y: y,
+            direction: direction
+        };
+
         this.direction = direction;
         this.evenTick = 0;
         this.upKey = upKey;
@@ -135,11 +144,17 @@ window.tanks = function tanks(element) {
         this.downKey = downKey;
         this.leftKey = leftKey;
         this.color = color;
+        this.resetTick = 0;
     }
 
     Tank.prototype = Object.create(Actor.prototype);
 
     Tank.prototype.update = function() {
+        if (this.resetTick > 0) {
+            this.resetTick--;
+            return;
+        }
+
         if (keys.hasOwnProperty(this.upKey)) {
             this.direction = DIRECTION_UP;
             this.move(0, -1);
@@ -160,6 +175,10 @@ window.tanks = function tanks(element) {
     };
 
     Tank.prototype.render = function() {
+        if (this.resetTick%10) {
+            return;
+        }
+
         context.save();
         context.translate(this.x, this.y);
         context.rotate(this.direction);
@@ -195,6 +214,13 @@ window.tanks = function tanks(element) {
         this.enemeny = tank;
     };
 
+    Tank.prototype.hit = function() {
+        this.x = this.initial.x;
+        this.y = this.initial.y;
+        this.direction = this.initial.direction;
+        this.resetTick = RESET_TICK;
+    };
+
     function Projectile(tank, enemy, key) {
         Actor.call(this, 0, 0, 5, 5);
         this.tank = tank;
@@ -208,9 +234,10 @@ window.tanks = function tanks(element) {
     Projectile.prototype.update = function() {
         if (this.colided(this.enemy)) {
             this.fired = false;
+            this.enemy.hit();
         }
 
-        if (keys.hasOwnProperty(this.key) && !this.fired) {
+        if (keys.hasOwnProperty(this.key) && !this.fired && !this.tank.resetTick) {
             this.fired = true;
             this.x = this.tank.x + ((this.tank.w / 2) - (this.w / 2));
             this.y = this.tank.y + ((this.tank.h / 2) - (this.h / 2));
@@ -241,7 +268,7 @@ window.tanks = function tanks(element) {
         Actor.prototype.render.call(this);
     };
 
-    var tank = new Tank(WIDTH / 2 - TANK_SIZE / 2, 499, DIRECTION_DOWN, TANK_COLOR_GREEN, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT);
+    var tank = new Tank(WIDTH / 2 - TANK_SIZE / 2, 0, DIRECTION_DOWN, TANK_COLOR_GREEN, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT);
     var tank2 = new Tank(WIDTH / 2 - TANK_SIZE / 2, HEIGHT - TANK_SIZE, DIRECTION_UP, TANK_COLOR_YELLOW, KEY_W, KEY_D, KEY_S, KEY_A);
     tank.setEnemy(tank2);
     tank2.setEnemy(tank);
