@@ -57,6 +57,14 @@ window.tanks = function tanks(element) {
         delete keys[e.keyCode];
     });
 
+    function between(n, x1, x2) {
+        return n > x1 && n < x2;
+    }
+
+    function colided(x1, xo1, x2, xo2) {
+        return between(x1, x2, xo2) || between(xo1, x2, xo2) || x1 == x2 && xo1 == xo2;
+    }
+
     function Actor(x, y, w, h, x_speed, y_speed) {
         this.x = x;
         this.y = y;
@@ -87,9 +95,35 @@ window.tanks = function tanks(element) {
         }
     };
 
+    Actor.prototype.futureX = function() {
+        return this.x + this.x_speed;
+    };
+
+    Actor.prototype.futureY = function() {
+        return this.y + this.y_speed;
+    };
+
+    Actor.prototype.futureOuterX = function() {
+        return this.futureX() + this.w;
+    };
+
+    Actor.prototype.futureOuterY = function() {
+        return this.futureY() + this.h;
+    };
+
     Actor.prototype.move = function(x, y) {
         this.x_speed = x;
         this.y_speed = y;
+    };
+
+    Actor.prototype.colided = function(actor) {
+        if (colided(this.futureX(), this.futureOuterX(), actor.futureX(), actor.futureOuterX())) {
+            if (colided(this.futureY(), this.futureOuterY(), actor.futureY(), actor.futureOuterY())) {
+                return true;
+            }
+        }
+
+        return false;
     };
 
     function Tank(x, y, direction, color, upKey, rightKey, downKey, leftKey) {
@@ -152,9 +186,10 @@ window.tanks = function tanks(element) {
         Actor.prototype.move.call(this, x, y);
     };
 
-    function Projectile(tank, key) {
+    function Projectile(tank, enemy, key) {
         Actor.call(this, 0, 0, 10, 10);
         this.tank = tank;
+        this.enemy = enemy;
         this.fired = false;
         this.key = key;
     }
@@ -162,6 +197,10 @@ window.tanks = function tanks(element) {
     Projectile.prototype = Object.create(Actor.prototype);
 
     Projectile.prototype.update = function() {
+        if (this.colided(this.enemy)) {
+            this.fired = false;
+        }
+
         if (keys.hasOwnProperty(this.key) && !this.fired) {
             this.fired = true;
             this.x = this.tank.x + ((this.tank.w / 2) - (this.w / 2));
@@ -197,9 +236,9 @@ window.tanks = function tanks(element) {
     var tank2 = new Tank(WIDTH / 2 - TANK_SIZE / 2, HEIGHT - TANK_SIZE, DIRECTION_UP, TANK_COLOR_YELLOW, KEY_W, KEY_D, KEY_S, KEY_A);
     const actors = [
         tank,
-        new Projectile(tank, KEY_SPACE),
+        new Projectile(tank, tank2, KEY_SPACE),
         tank2,
-        new Projectile(tank2, KEY_F)
+        new Projectile(tank2, tank, KEY_F)
     ];
 
     function update() {
