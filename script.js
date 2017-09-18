@@ -67,13 +67,14 @@ window.tanks = function tanks(element) {
         return between(x1, x2, xo2) || between(xo1, x2, xo2);
     }
 
-    function Actor(x, y, w, h, x_speed, y_speed) {
+    function Actor(x, y, w, h, x_speed, y_speed, direction) {
         this.x = x;
         this.y = y;
         this.w = w;
         this.h = h;
         this.x_speed = x_speed || 0;
         this.y_speed = y_speed || 0;
+        this.direction = direction || DIRECTION_UP;
     }
 
     Actor.prototype.onOut = function() {};
@@ -128,16 +129,33 @@ window.tanks = function tanks(element) {
         return false;
     };
 
-    function Tank(x, y, direction, color, upKey, rightKey, downKey, leftKey) {
-        Actor.call(this, x, y, TANK_SIZE, TANK_SIZE);
+    Actor.prototype.moveTo = function(actor) {
+        this.x = actor.x;
+        this.y = actor.y;
+        this.x_speed = actor.x_speed;
+        this.y_speed = actor.y_speed;
+    };
 
-        this.initial = {
-            x: x,
-            y: y,
-            direction: direction
-        };
+    function DirectedActor(x, y, w, h, x_speed, y_speed, direction) {
+        Actor.call(this, x, y, w, h, x_speed, y_speed);
+        this.direction = direction || DIRECTION_UP;
+    }
 
-        this.direction = direction;
+    DirectedActor.prototype = Object.create(Actor.prototype);
+
+    DirectedActor.prototype.moveTo = function (actor) {
+        Actor.prototype.moveTo.call(this, actor);
+
+        if (actor.hasOwnProperty('direction')) {
+            this.direction = actor.direction;
+        }
+    };
+
+    function Tank(start, color, upKey, rightKey, downKey, leftKey) {
+        DirectedActor.call(this, start.x, start.y, TANK_SIZE, TANK_SIZE, start.direction);
+
+        this.initial = start;
+
         this.evenTick = 0;
         this.upKey = upKey;
         this.rightKey = rightKey;
@@ -147,7 +165,7 @@ window.tanks = function tanks(element) {
         this.resetTick = 0;
     }
 
-    Tank.prototype = Object.create(Actor.prototype);
+    Tank.prototype = Object.create(DirectedActor.prototype);
 
     Tank.prototype.update = function() {
         if (this.resetTick > 0) {
@@ -171,7 +189,7 @@ window.tanks = function tanks(element) {
             this.move(0, 0);
         }
 
-        Actor.prototype.update.call(this);
+        DirectedActor.prototype.update.call(this);
     };
 
     Tank.prototype.render = function() {
@@ -202,7 +220,7 @@ window.tanks = function tanks(element) {
             this.evenTick %= 3;
         }
 
-        Actor.prototype.move.call(this, x, y);
+        DirectedActor.prototype.move.call(this, x, y);
 
         if (this.colided(this.enemeny)) {
             this.x_speed = 0;
@@ -215,9 +233,12 @@ window.tanks = function tanks(element) {
     };
 
     Tank.prototype.hit = function() {
-        this.x = this.initial.x;
-        this.y = this.initial.y;
-        this.direction = this.initial.direction;
+        if (this.initial.colided(this.enemeny)) {
+            this.moveTo(this.enemeny.initial);
+        } else {
+            this.moveTo(this.initial);
+        }
+
         this.resetTick = RESET_TICK;
     };
 
@@ -268,8 +289,10 @@ window.tanks = function tanks(element) {
         Actor.prototype.render.call(this);
     };
 
-    var tank = new Tank(WIDTH / 2 - TANK_SIZE / 2, 0, DIRECTION_DOWN, TANK_COLOR_GREEN, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT);
-    var tank2 = new Tank(WIDTH / 2 - TANK_SIZE / 2, HEIGHT - TANK_SIZE, DIRECTION_UP, TANK_COLOR_YELLOW, KEY_W, KEY_D, KEY_S, KEY_A);
+    var start1 = new DirectedActor(WIDTH / 2 - TANK_SIZE / 2, 0, TANK_SIZE, TANK_SIZE, DIRECTION_DOWN);
+    var start2 = new DirectedActor(WIDTH / 2 - TANK_SIZE / 2, HEIGHT - TANK_SIZE, TANK_SIZE, TANK_SIZE, DIRECTION_UP);
+    var tank = new Tank(start1, TANK_COLOR_GREEN, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT);
+    var tank2 = new Tank(start2, TANK_COLOR_YELLOW, KEY_W, KEY_D, KEY_S, KEY_A);
     tank.setEnemy(tank2);
     tank2.setEnemy(tank);
     const actors = [
